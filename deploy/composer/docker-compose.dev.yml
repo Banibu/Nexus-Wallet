@@ -5,8 +5,6 @@ services:
     image: postgres:15-alpine
     container_name: nexus-postgres-dev
     restart: always
-    env_file:
-      - ../../.env
     ports:
       - "5432:5432"
     volumes:
@@ -27,8 +25,6 @@ services:
       dockerfile: backend/Dockerfile
     container_name: nexus-backend-dev
     restart: always
-    env_file:
-      - ../../.env
     environment:
       NODE_ENV: development
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public"
