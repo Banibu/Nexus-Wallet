@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+**/build
+.git
+.env*
+!backend/.env.example
+!deploy/composer/.env.example

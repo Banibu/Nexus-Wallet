@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+    :root {
+        --background: 210 20% 6%;
+        --foreground: 210 20% 98%;
+        --card: 210 18% 9%;
+        --card-foreground: 210 20% 98%;
+        --popover: 210 18% 9%;
+        --popover-foreground: 210 20% 98%;
+        --primary: 173 78% 36%;
+        --primary-foreground: 210 20% 98%;
+        --secondary: 215 16% 16%;
+        --secondary-foreground: 210 20% 98%;
+        --muted: 215 16% 16%;
+        --muted-foreground: 215 14% 70%;
+        --accent: 173 40% 18%;
+        --accent-foreground: 210 20% 98%;
+        --destructive: 0 72% 52%;
+        --destructive-foreground: 210 20% 98%;
+        --border: 215 16% 18%;
+        --input: 215 16% 18%;
+        --ring: 173 78% 36%;
+        --radius: 0.75rem;
+        --chart-1: 173 78% 36%;
+        --chart-2: 84 85% 55%;
+        --chart-3: 210 12% 70%;
+        --chart-4: 28 90% 60%;
+        --chart-5: 200 85% 55%;
+        --nexus-lime: 84 85% 55%;
+        --nexus-teal: 173 78% 36%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+        background-image:
+            radial-gradient(900px circle at 12% -10%, hsla(173, 78%, 36%, 0.10), transparent 55%),
+            radial-gradient(700px circle at 92% 0%, hsla(84, 85%, 55%, 0.06), transparent 60%);
+        background-attachment: fixed;
+    }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: hsl(215 16% 22%);
+    border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(215 16% 30%);
+}
+::-webkit-scrollbar-track {
+    background: hsl(210 20% 6%);
+}

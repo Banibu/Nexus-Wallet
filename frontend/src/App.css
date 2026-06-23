@@ -1,0 +1,4 @@
+/* Nexus Wallet — minimal app-level styles. Most styling done via Tailwind. */
+.App {
+    min-height: 100vh;
+}

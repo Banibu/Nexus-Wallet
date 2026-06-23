@@ -1,0 +1,44 @@
+name: nexus-wallet
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: nexus-postgres-prod
+    restart: always
+    env_file:
+      - ../../.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis-prod
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata_prod:/data
+
+  backend:
+    build:
+      context: ../../
+      dockerfile: backend/Dockerfile
+    container_name: nexus-backend-prod
+    restart: always
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public"
+      REDIS_URL: "redis://redis:6379"
+    ports:
+      - "8002:8002"
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:

@@ -1,0 +1,53 @@
+declare module '*.css' {
+  const content: any;
+  export default content;
+}
+
+declare module '@/components/ui/*' {
+  export const Card: any;
+  export const CardHeader: any;
+  export const CardFooter: any;
+  export const CardTitle: any;
+  export const CardDescription: any;
+  export const CardContent: any;
+  export const Button: any;
+  export const Input: any;
+  export const Label: any;
+  export const Alert: any;
+  export const AlertDescription: any;
+  export const AlertTitle: any;
+  export const Badge: any;
+  export const Separator: any;
+  export const Select: any;
+  export const SelectContent: any;
+  export const SelectItem: any;
+  export const SelectTrigger: any;
+  export const SelectValue: any;
+  export const Table: any;
+  export const TableBody: any;
+  export const TableCell: any;
+  export const TableHead: any;
+  export const TableHeader: any;
+  export const TableRow: any;
+  export const Sheet: any;
+  export const SheetContent: any;
+  export const SheetTrigger: any;
+  export const Accordion: any;
+  export const AccordionContent: any;
+  export const AccordionItem: any;
+  export const AccordionTrigger: any;
+  export const AlertDialog: any;
+  export const AlertDialogAction: any;
+  export const AlertDialogCancel: any;
+  export const AlertDialogContent: any;
+  export const AlertDialogDescription: any;
+  export const AlertDialogFooter: any;
+  export const AlertDialogHeader: any;
+  export const AlertDialogTitle: any;
+  export const AlertDialogTrigger: any;
+  export const Tabs: any;
+  export const TabsList: any;
+  export const TabsTrigger: any;
+  export const TabsContent: any;
+  export const Skeleton: any;
+}
