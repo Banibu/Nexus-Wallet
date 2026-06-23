@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Seed script: creates demo user demo@nexus.com / demo1234 with realistic balances and transaction history.
  * Resets the demo user data if it already exists so that re-running guarantees a clean visual state.
