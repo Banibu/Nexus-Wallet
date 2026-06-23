@@ -18,11 +18,11 @@ const STORAGE_KEYS = {
 // ─── Token Storage ────────────────────────────────────────────────────────────
 
 export function getAccessToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.accessToken);
+    return localStorage.getItem(STORAGE_KEYS.accessToken) || sessionStorage.getItem(STORAGE_KEYS.accessToken);
 }
 
 export function getRefreshToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.refreshToken);
+    return localStorage.getItem(STORAGE_KEYS.refreshToken) || sessionStorage.getItem(STORAGE_KEYS.refreshToken);
 }
 
 export interface TokenPayload {
@@ -30,32 +30,48 @@ export interface TokenPayload {
     refreshToken?: string;
 }
 
-export function setTokens({ accessToken, refreshToken }: TokenPayload): void {
+export function setTokens({ accessToken, refreshToken }: TokenPayload, remember: boolean = true): void {
+    const storage = remember ? localStorage : sessionStorage;
+    const otherStorage = remember ? sessionStorage : localStorage;
+
+    // Clean up other storage to avoid dual state
+    otherStorage.removeItem(STORAGE_KEYS.accessToken);
+    otherStorage.removeItem(STORAGE_KEYS.refreshToken);
+
     if (accessToken)
-        localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
+        storage.setItem(STORAGE_KEYS.accessToken, accessToken);
     if (refreshToken)
-        localStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
+        storage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
 }
 
 export function clearTokens(): void {
     localStorage.removeItem(STORAGE_KEYS.accessToken);
     localStorage.removeItem(STORAGE_KEYS.refreshToken);
     localStorage.removeItem(STORAGE_KEYS.user);
+    sessionStorage.removeItem(STORAGE_KEYS.accessToken);
+    sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
+    sessionStorage.removeItem(STORAGE_KEYS.user);
 }
 
 // ─── User Storage ─────────────────────────────────────────────────────────────
 
 export function getUser(): User | null {
     try {
-        const raw = localStorage.getItem(STORAGE_KEYS.user);
+        const raw = localStorage.getItem(STORAGE_KEYS.user) || sessionStorage.getItem(STORAGE_KEYS.user);
         return raw ? (JSON.parse(raw) as User) : null;
     } catch {
         return null;
     }
 }
 
-export function setUser(u: User | null): void {
-    if (u) localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(u));
+export function setUser(u: User | null, remember: boolean = true): void {
+    if (u) {
+        const storage = remember ? localStorage : sessionStorage;
+        const otherStorage = remember ? sessionStorage : localStorage;
+
+        otherStorage.removeItem(STORAGE_KEYS.user);
+        storage.setItem(STORAGE_KEYS.user, JSON.stringify(u));
+    }
 }
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
@@ -84,11 +100,12 @@ async function tryRefreshAccessToken(): Promise<string> {
     if (pendingRefresh) return pendingRefresh;
 
     const refreshToken = getRefreshToken() ?? '';
+    const remember = !!localStorage.getItem(STORAGE_KEYS.refreshToken);
 
     pendingRefresh = axios
         .post<TokenPayload>(
             `${API}/auth/refresh`,
-            { refreshToken },
+            { refreshToken, remember },
             { withCredentials: true },
         )
         .then((response) => {

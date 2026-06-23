@@ -66,8 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setLocalUser] = useState<User | null>(getUser);
     const [loading, setLoading] = useState(false);
 
-    const persistUser = useCallback((u: User | null) => {
-        setUser(u);
+    const persistUser = useCallback((u: User | null, remember: boolean = true) => {
+        setUser(u, remember);
         setLocalUser(u);
     }, []);
 
@@ -75,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLocalUser((prev) => {
             if (!prev) return null;
             const updated = { ...prev, ...data };
-            setUser(updated);
+            const remember = !!localStorage.getItem('nexus.user');
+            setUser(updated, remember);
             return updated;
         });
     }, []);
@@ -115,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 const success = data as LoginSuccessResponse;
-                setTokens(success);
-                persistUser(success.user);
+                setTokens(success, remember);
+                persistUser(success.user, remember);
                 return success;
             } finally {
                 setLoading(false);
@@ -137,8 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     '/auth/login/totp',
                     { email, code, remember },
                 );
-                setTokens(data);
-                persistUser(data.user);
+                setTokens(data, remember);
+                persistUser(data.user, remember);
                 return data.user;
             } finally {
                 setLoading(false);
@@ -159,8 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     '/auth/login/2fa',
                     { tempToken, code, remember },
                 );
-                setTokens(data);
-                persistUser(data.user);
+                setTokens(data, remember);
+                persistUser(data.user, remember);
                 return data.user;
             } finally {
                 setLoading(false);
@@ -181,8 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     '/auth/register',
                     { name, email, password },
                 );
-                setTokens(data);
-                persistUser(data.user);
+                setTokens(data, true);
+                persistUser(data.user, true);
                 return data.user;
             } finally {
                 setLoading(false);
@@ -206,8 +207,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedUser = getUser();
         if (!storedUser) return;
 
+        const remember = !!localStorage.getItem('nexus.user');
+
         api.get<{ user: User }>('/auth/me')
-            .then(({ data }) => persistUser(data.user))
+            .then(({ data }) => persistUser(data.user, remember))
             .catch(() => {
                 clearTokens();
                 setLocalUser(null);

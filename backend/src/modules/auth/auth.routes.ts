@@ -28,9 +28,14 @@ const REFRESH_COOKIE_OPTIONS = {
 	path: "/api/auth",
 	httpOnly: true,
 	secure: IS_PRODUCTION,
-	sameSite: "lax" as const,
+	sameSite: IS_PRODUCTION ? ("none" as const) : ("lax" as const),
 };
 
+/**
+ * Sets the refresh token cookie and, when the user chose "remember device",
+ * also sets a long-lived trusted_device cookie so subsequent 2FA logins are
+ * skipped for this browser.
+ */
 /**
  * Sets the refresh token cookie and, when the user chose "remember device",
  * also sets a long-lived trusted_device cookie so subsequent 2FA logins are
@@ -43,7 +48,7 @@ function setSessionCookies(
 ): void {
 	reply.setCookie("refreshToken", refreshToken, {
 		...REFRESH_COOKIE_OPTIONS,
-		maxAge: COOKIE_TTL.refreshToken,
+		maxAge: remember !== false ? COOKIE_TTL.refreshToken : undefined,
 	});
 
 	if (remember) {
@@ -115,14 +120,20 @@ export async function authRoutes(app: FastifyInstance) {
 	// Accepts a refresh token from either the cookie or the request body.
 	app.post("/refresh", async (req, reply) => {
 		const refreshTokenFromCookie = req.cookies.refreshToken;
+		const body = req.body as { refreshToken?: string; remember?: boolean };
 		const refreshToken =
-			refreshTokenFromCookie ?? refreshSchema.parse(req.body).refreshToken;
+			refreshTokenFromCookie ?? (body?.refreshToken || "");
+
+		if (!refreshToken) {
+			return reply.code(400).send({ error: { message: "Refresh token missing" } });
+		}
 
 		const result = await authService.refresh(refreshToken);
+		const remember = body?.remember ?? !!refreshTokenFromCookie;
 
 		reply.setCookie("refreshToken", result.refreshToken, {
 			...REFRESH_COOKIE_OPTIONS,
-			maxAge: COOKIE_TTL.refreshToken,
+			maxAge: remember !== false ? COOKIE_TTL.refreshToken : undefined,
 		});
 
 		return reply.send(result);
