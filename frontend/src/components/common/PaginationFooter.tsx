@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface PaginationFooterProps {
     page: number;
@@ -10,11 +10,22 @@ interface PaginationFooterProps {
     onPageChange: (newPage: number) => void;
 }
 
-export function PaginationFooter({ page, total, totalPages, loading, itemName = 'itens', onPageChange }: PaginationFooterProps) {
+export function PaginationFooter({
+    page,
+    total,
+    totalPages,
+    loading,
+    itemName = 'itens',
+    onPageChange,
+}: PaginationFooterProps) {
     return (
-        <div className="flex items-center justify-between flex-wrap gap-2" data-testid="table-pagination">
+        <div
+            className="flex items-center justify-between flex-wrap gap-2"
+            data-testid="table-pagination"
+        >
             <div className="text-xs text-muted-foreground">
-                Total: <span className="font-medium">{total}</span> {itemName} · Página {page} de {Math.max(1, totalPages)}
+                Total: <span className="font-medium">{total}</span> {itemName} ·
+                Página {page} de {Math.max(1, totalPages)}
             </div>
             <div className="flex items-center gap-2">
                 <Button

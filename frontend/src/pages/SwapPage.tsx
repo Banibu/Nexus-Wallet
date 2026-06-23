@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { api, toastError } from '@/lib/api';
-import { fmtNumber } from '@/lib/format';
+import { ArrowDown, ArrowLeftRight, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import SectionHeader from '@/components/common/SectionHeader';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
     Select,
     SelectContent,
@@ -15,8 +14,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Loader2, ArrowDown, ArrowLeftRight } from 'lucide-react';
-import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
+import { api, toastError } from '@/lib/api';
+import { fmtNumber } from '@/lib/format';
 
 const TOKENS = ['BRL', 'BTC', 'ETH', 'USDT'];
 
@@ -69,7 +69,11 @@ export default function SwapPage() {
         if (!quote) return;
         setExecuting(true);
         try {
-            const { data } = await api.post('/swaps/execute', { fromToken, toToken, amount });
+            const { data } = await api.post('/swaps/execute', {
+                fromToken,
+                toToken,
+                amount,
+            });
             toast.success(`Conversão concluída • ${data.amountOut} ${toToken}`);
             setAmount('');
             setQuote(null);
@@ -84,27 +88,35 @@ export default function SwapPage() {
         <div className="space-y-6">
             <SectionHeader
                 title="Swap"
-                subtitle="Converta entre BRL, BTC, ETH e USDT com cotações atualizadas em tempo real."
+                subtitle="Converta entre BRL, USD, BTC, ETH e USDT com cotações atualizadas em tempo real."
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-display flex items-center gap-2">
-                            <ArrowLeftRight className="h-5 w-5 text-primary" /> Nova conversão
+                            <ArrowLeftRight className="h-5 w-5 text-primary" />{' '}
+                            Nova conversão
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <Label>De</Label>
-                                <Select value={fromToken} onValueChange={setFrom}>
+                                <Select
+                                    value={fromToken}
+                                    onValueChange={setFrom}
+                                >
                                     <SelectTrigger data-testid="swap-from-token-select">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {TOKENS.map((t) => (
-                                            <SelectItem key={t} value={t} disabled={t === toToken}>
+                                            <SelectItem
+                                                key={t}
+                                                value={t}
+                                                disabled={t === toToken}
+                                            >
                                                 {t}
                                             </SelectItem>
                                         ))}
@@ -119,7 +131,11 @@ export default function SwapPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {TOKENS.map((t) => (
-                                            <SelectItem key={t} value={t} disabled={t === fromToken}>
+                                            <SelectItem
+                                                key={t}
+                                                value={t}
+                                                disabled={t === fromToken}
+                                            >
                                                 {t}
                                             </SelectItem>
                                         ))}
@@ -144,7 +160,9 @@ export default function SwapPage() {
                                 inputMode="decimal"
                                 placeholder="0,00"
                                 value={amount}
-                                onChange={(e) => setAmount(e.target.value.replace(',', '.'))}
+                                onChange={(e) =>
+                                    setAmount(e.target.value.replace(',', '.'))
+                                }
                                 data-testid="swap-amount-input"
                                 className="text-lg tabular-nums"
                             />
@@ -158,7 +176,8 @@ export default function SwapPage() {
                         >
                             {executing ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando…
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />{' '}
+                                    Processando…
                                 </>
                             ) : (
                                 'Confirmar conversão'
@@ -170,8 +189,12 @@ export default function SwapPage() {
                 <Card className="bg-card">
                     <CardHeader className="flex flex-row items-start justify-between">
                         <div>
-                            <CardTitle className="font-display">Resumo da cotação</CardTitle>
-                            <div className="text-xs text-muted-foreground">Cotação em tempo real</div>
+                            <CardTitle className="font-display">
+                                Resumo da cotação
+                            </CardTitle>
+                            <div className="text-xs text-muted-foreground">
+                                Cotação em tempo real
+                            </div>
                         </div>
                         <Badge variant="secondary" className="text-xs">
                             Taxa 1,5%
@@ -185,7 +208,8 @@ export default function SwapPage() {
                         )}
                         {quoteLoading && (
                             <div className="py-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" /> Buscando cotação…
+                                <Loader2 className="h-4 w-4 animate-spin" />{' '}
+                                Buscando cotação…
                             </div>
                         )}
                         {quote && !quoteLoading && (
@@ -210,18 +234,25 @@ export default function SwapPage() {
                                 />
                                 <Separator />
                                 <div className="flex items-end justify-between">
-                                    <div className="text-muted-foreground text-xs">Você recebe</div>
+                                    <div className="text-muted-foreground text-xs">
+                                        Você recebe
+                                    </div>
                                     <div
                                         className="text-2xl font-display font-semibold tabular-nums"
                                         data-testid="swap-quote-to-total"
                                     >
-                                        {fmtNumber(quote.amountOut, { token: quote.toToken })} {quote.toToken}
+                                        {fmtNumber(quote.amountOut, {
+                                            token: quote.toToken,
+                                        })}{' '}
+                                        {quote.toToken}
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                                     <span>
                                         Atualizada em{' '}
-                                        {new Date(quote.fetchedAt).toLocaleTimeString('pt-BR')}
+                                        {new Date(
+                                            quote.fetchedAt,
+                                        ).toLocaleTimeString('pt-BR')}
                                     </span>
                                 </div>
                             </div>
@@ -233,11 +264,22 @@ export default function SwapPage() {
     );
 }
 
-function Row({ label, value, testid }: { label: string; value: string; testid?: string }) {
+function Row({
+    label,
+    value,
+    testid,
+}: {
+    label: string;
+    value: string;
+    testid?: string;
+}) {
     return (
         <div className="flex items-center justify-between gap-3">
             <span className="text-muted-foreground">{label}</span>
-            <span className="font-mono tabular-nums text-sm" data-testid={testid}>
+            <span
+                className="font-mono tabular-nums text-sm"
+                data-testid={testid}
+            >
                 {value}
             </span>
         </div>

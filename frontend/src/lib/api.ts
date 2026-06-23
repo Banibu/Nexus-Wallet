@@ -1,99 +1,157 @@
-import axios from 'axios';
+import axios, { type AxiosError } from 'axios';
 import { toast } from 'sonner';
-import { User } from '@/context/AuthContext';
+import type { User } from '@/context/AuthContext';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+// ─── Base URL ─────────────────────────────────────────────────────────────────
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL ?? '';
 export const API = `${BACKEND_URL}/api`;
 
-const ACCESS_KEY = 'nexus.accessToken';
-const REFRESH_KEY = 'nexus.refreshToken';
-const USER_KEY = 'nexus.user';
+// ─── localStorage Keys ────────────────────────────────────────────────────────
+
+const STORAGE_KEYS = {
+    accessToken: 'nexus.accessToken',
+    refreshToken: 'nexus.refreshToken',
+    user: 'nexus.user',
+} as const;
+
+// ─── Token Storage ────────────────────────────────────────────────────────────
 
 export function getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_KEY);
+    return localStorage.getItem(STORAGE_KEYS.accessToken);
 }
+
 export function getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_KEY);
+    return localStorage.getItem(STORAGE_KEYS.refreshToken);
 }
+
 export interface TokenPayload {
     accessToken?: string;
     refreshToken?: string;
 }
+
 export function setTokens({ accessToken, refreshToken }: TokenPayload): void {
-    if (accessToken) localStorage.setItem(ACCESS_KEY, accessToken);
-    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
+    if (accessToken)
+        localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
+    if (refreshToken)
+        localStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
 }
+
 export function clearTokens(): void {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(STORAGE_KEYS.accessToken);
+    localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    localStorage.removeItem(STORAGE_KEYS.user);
 }
+
+// ─── User Storage ─────────────────────────────────────────────────────────────
+
 export function getUser(): User | null {
     try {
-        const raw = localStorage.getItem(USER_KEY);
-        return raw ? JSON.parse(raw) as User : null;
+        const raw = localStorage.getItem(STORAGE_KEYS.user);
+        return raw ? (JSON.parse(raw) as User) : null;
     } catch {
         return null;
     }
 }
+
 export function setUser(u: User | null): void {
-    if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    if (u) localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(u));
 }
 
-export const api = axios.create({ baseURL: API, timeout: 30000, withCredentials: true });
+// ─── Axios Instance ───────────────────────────────────────────────────────────
 
-api.interceptors.request.use((cfg) => {
-    const tk = getAccessToken();
-    if (tk) cfg.headers.Authorization = `Bearer ${tk}`;
-    return cfg;
+export const api = axios.create({
+    baseURL: API,
+    timeout: 30_000,
+    withCredentials: true,
 });
 
-let refreshInflight: Promise<string> | null = null;
+// Attach the access token to every outgoing request
+api.interceptors.request.use((config) => {
+    const token = getAccessToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
 
-async function tryRefresh(): Promise<string> {
-    if (refreshInflight) return refreshInflight;
-    const refreshToken = getRefreshToken() || '';
-    refreshInflight = axios
-        .post(`${API}/auth/refresh`, { refreshToken }, { withCredentials: true })
-        .then((r) => {
-            setTokens(r.data);
-            return r.data.accessToken as string;
+// ─── Transparent Token Refresh ────────────────────────────────────────────────
+// When a request fails with 401, we try to silently refresh the access token
+// using the refresh token (sent via cookie or stored locally).
+// All concurrent 401s share the same refresh promise to avoid duplicate calls.
+
+let pendingRefresh: Promise<string> | null = null;
+
+async function tryRefreshAccessToken(): Promise<string> {
+    if (pendingRefresh) return pendingRefresh;
+
+    const refreshToken = getRefreshToken() ?? '';
+
+    pendingRefresh = axios
+        .post<TokenPayload>(
+            `${API}/auth/refresh`,
+            { refreshToken },
+            { withCredentials: true },
+        )
+        .then((response) => {
+            setTokens(response.data);
+            return response.data.accessToken as string;
         })
-        .catch((e) => {
+        .catch((error) => {
             clearTokens();
-            throw e;
+            throw error;
         })
         .finally(() => {
-            refreshInflight = null;
+            pendingRefresh = null;
         });
-    return refreshInflight;
+
+    return pendingRefresh;
 }
 
 api.interceptors.response.use(
-    (r) => r,
-    async (error) => {
-        const original = error.config || {};
-        if (error.response?.status === 401 && !original._retry && !original.url?.includes('/auth/')) {
-            original._retry = true;
+    (response) => response,
+    async (error: AxiosError) => {
+        const originalRequest = error.config as typeof error.config & {
+            _retry?: boolean;
+        };
+        const is401 = error.response?.status === 401;
+        const isAuthRoute = originalRequest?.url?.includes('/auth/');
+        const alreadyRetried = originalRequest?._retry;
+
+        if (is401 && !isAuthRoute && !alreadyRetried) {
+            originalRequest!._retry = true;
             try {
-                const newToken = await tryRefresh();
-                original.headers.Authorization = `Bearer ${newToken}`;
-                return api(original);
+                const newToken = await tryRefreshAccessToken();
+                originalRequest!.headers!.Authorization = `Bearer ${newToken}`;
+                return api(originalRequest!);
             } catch {
+                // Refresh failed — redirect to login
                 if (typeof window !== 'undefined') {
                     window.location.href = '/login';
                 }
             }
         }
+
         return Promise.reject(error);
     },
 );
 
-export function apiErrorMessage(err: any): string {
-    const data = err?.response?.data;
-    return data?.error?.message || data?.message || err?.message || 'Erro inesperado';
+// ─── Error Utilities ──────────────────────────────────────────────────────────
+
+/** Extracts a human-readable message from an API error. */
+export function apiErrorMessage(err: unknown): string {
+    const axiosErr = err as AxiosError<{
+        error?: { message?: string };
+        message?: string;
+    }>;
+    const data = axiosErr?.response?.data;
+    return (
+        data?.error?.message ??
+        data?.message ??
+        (err as Error)?.message ??
+        'Erro inesperado'
+    );
 }
 
-export function toastError(err: any): void {
+/** Displays an API error as a toast notification. */
+export function toastError(err: unknown): void {
     toast.error(apiErrorMessage(err));
 }

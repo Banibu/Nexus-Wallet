@@ -1,23 +1,27 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { api, toastError } from '@/lib/api';
-import { fmtNumber } from '@/lib/format';
-import SectionHeader from '@/components/common/SectionHeader';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Bitcoin,
-    DollarSign,
-    Coins,
-    ArrowLeftRight,
     ArrowDownToLine,
+    ArrowLeftRight,
+    Bitcoin,
+    Coins,
+    DollarSign,
     Wallet,
 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import SectionHeader from '@/components/common/SectionHeader';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { api, toastError } from '@/lib/api';
+import { fmtNumber } from '@/lib/format';
 
 const TOKEN_META = {
-    BRL: { label: 'Real Brasileiro', icon: DollarSign, color: 'text-emerald-300' },
+    BRL: {
+        label: 'Real Brasileiro',
+        icon: DollarSign,
+        color: 'text-emerald-300',
+    },
     BTC: { label: 'Bitcoin', icon: Bitcoin, color: 'text-amber-300' },
     ETH: { label: 'Ethereum', icon: Coins, color: 'text-indigo-300' },
 };
@@ -86,7 +90,8 @@ export default function DashboardPage() {
                 <CardContent className="py-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                     <div>
                         <div className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                            <Wallet className="h-3.5 w-3.5" /> Patrimônio estimado
+                            <Wallet className="h-3.5 w-3.5" /> Patrimônio
+                            estimado
                         </div>
                         <div
                             className="font-display text-4xl sm:text-5xl font-semibold tabular-nums mt-1"
@@ -95,23 +100,39 @@ export default function DashboardPage() {
                             R$ {fmtNumber(totalBRL, { token: 'BRL' })}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                            {rates.BTC ? 'BTC R$ ' + fmtNumber(rates.BTC, { token: 'BRL' }) : ''}
+                            {rates.BTC
+                                ? 'BTC R$ ' +
+                                  fmtNumber(rates.BTC, { token: 'BRL' })
+                                : ''}
                             {rates.BTC && rates.ETH ? ' · ' : ''}
-                            {rates.ETH ? 'ETH R$ ' + fmtNumber(rates.ETH, { token: 'BRL' }) : ''}
+                            {rates.ETH
+                                ? 'ETH R$ ' +
+                                  fmtNumber(rates.ETH, { token: 'BRL' })
+                                : ''}
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button asChild data-testid="dashboard-action-swap">
                             <Link to="/swap">
-                                <ArrowLeftRight className="h-4 w-4 mr-1.5" /> Trocar
+                                <ArrowLeftRight className="h-4 w-4 mr-1.5" />{' '}
+                                Trocar
                             </Link>
                         </Button>
-                        <Button asChild variant="secondary" data-testid="dashboard-action-withdraw">
+                        <Button
+                            asChild
+                            variant="secondary"
+                            data-testid="dashboard-action-withdraw"
+                        >
                             <Link to="/withdraw">
-                                <ArrowDownToLine className="h-4 w-4 mr-1.5" /> Sacar
+                                <ArrowDownToLine className="h-4 w-4 mr-1.5" />{' '}
+                                Sacar
                             </Link>
                         </Button>
-                        <Button asChild variant="outline" data-testid="dashboard-action-deposit">
+                        <Button
+                            asChild
+                            variant="outline"
+                            data-testid="dashboard-action-deposit"
+                        >
                             <Link to="/deposit">
                                 <Wallet className="h-4 w-4 mr-1.5" /> Depositar
                             </Link>
@@ -132,12 +153,17 @@ export default function DashboardPage() {
                           </Card>
                       ))
                     : (balances || []).map((b) => {
-                          const meta = TOKEN_META[b.token] || { label: b.token, icon: Coins };
+                          const meta = TOKEN_META[b.token] || {
+                              label: b.token,
+                              icon: Coins,
+                          };
                           const Icon = meta.icon;
                           let brl = null;
                           if (b.token === 'BRL') brl = Number(b.amount);
-                          else if (b.token === 'BTC' && rates.BTC) brl = Number(b.amount) * rates.BTC;
-                          else if (b.token === 'ETH' && rates.ETH) brl = Number(b.amount) * rates.ETH;
+                          else if (b.token === 'BTC' && rates.BTC)
+                              brl = Number(b.amount) * rates.BTC;
+                          else if (b.token === 'ETH' && rates.ETH)
+                              brl = Number(b.amount) * rates.ETH;
                           return (
                               <Card
                                   key={b.token}
@@ -153,11 +179,18 @@ export default function DashboardPage() {
                                               <Icon className="h-4 w-4" />
                                           </div>
                                           <div>
-                                              <div className="text-xs text-muted-foreground">{meta.label}</div>
-                                              <div className="text-sm font-medium font-display">{b.token}</div>
+                                              <div className="text-xs text-muted-foreground">
+                                                  {meta.label}
+                                              </div>
+                                              <div className="text-sm font-medium font-display">
+                                                  {b.token}
+                                              </div>
                                           </div>
                                       </div>
-                                      <Badge variant="secondary" className="text-[10px]">
+                                      <Badge
+                                          variant="secondary"
+                                          className="text-[10px]"
+                                      >
                                           Disponível
                                       </Badge>
                                   </CardHeader>
@@ -166,14 +199,17 @@ export default function DashboardPage() {
                                           className="text-2xl sm:text-3xl font-display font-semibold tabular-nums"
                                           data-testid={`balance-card-${b.token}-amount`}
                                       >
-                                          {fmtNumber(b.amount, { token: b.token })}
+                                          {fmtNumber(b.amount, {
+                                              token: b.token,
+                                          })}
                                       </div>
                                       {brl !== null && b.token !== 'BRL' && (
                                           <div
                                               className="text-xs text-muted-foreground mt-1"
                                               data-testid={`balance-card-${b.token}-brl-value`}
                                           >
-                                              ≈ R$ {fmtNumber(brl, { token: 'BRL' })}
+                                              ≈ R${' '}
+                                              {fmtNumber(brl, { token: 'BRL' })}
                                           </div>
                                       )}
                                       <div className="mt-3 flex gap-2">

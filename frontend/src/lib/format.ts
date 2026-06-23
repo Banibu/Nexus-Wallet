@@ -1,4 +1,7 @@
-export function fmtNumber(value: number | string | null | undefined, opts: { token?: string; maxDigits?: number } = {}) {
+export function fmtNumber(
+    value: number | string | null | undefined,
+    opts: { token?: string; maxDigits?: number } = {},
+) {
     if (value === null || value === undefined) return '—';
     const n = typeof value === 'string' ? Number(value) : value;
     if (Number.isNaN(n)) return String(value);
@@ -15,14 +18,20 @@ export function fmtNumber(value: number | string | null | undefined, opts: { tok
     }).format(n);
 }
 
-export function fmtToken(value: number | string | null | undefined, token: string) {
+export function fmtToken(
+    value: number | string | null | undefined,
+    token: string,
+) {
     return `${fmtNumber(value, { token })} ${token}`;
 }
 
 export function fmtDate(iso: string | Date | null | undefined) {
     if (!iso) return '—';
     const d = new Date(iso);
-    return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
+    return d.toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'medium',
+    });
 }
 
 export function shortId(id: string | null | undefined) {

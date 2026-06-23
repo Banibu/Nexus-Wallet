@@ -20,6 +20,7 @@ A tabela abaixo detalha as ferramentas utilizadas no projeto, divididas entre a 
 | **Redis** | v5.4 | Cache temporário de cotações com TTL de 30 segundos | Opcional / Diferencial |
 | **React** | v19.0 | Interface SPA responsiva construída com Tailwind e shadcn/ui | Opcional / Diferencial |
 | **Docker** | v24+ | Empacotamento de containers e orquestração via docker-compose | Opcional / Diferencial |
+| **Speakeasy / TOTP** | v2.0 | Geração e validação de senhas temporárias (2FA / Passwordless) | Segurança / 2FA |
 
 ---
 
@@ -53,8 +54,12 @@ Nexus-Wallet/
 
 ## Funcionalidades
 
-### Autenticação
+### Autenticação e Segurança (2FA)
 Cadastro com e-mail e senha, login retornando Access Token (JWT) no payload e Refresh Token rotativo. O Refresh Token é armazenado em cookie seguro `HTTPOnly` com escopo restrito a `/api/auth` para mitigar ataques Cross-Site Scripting (XSS). Middleware `authGuard` protegendo todas as rotas restritas.
+
+A aplicação possui suporte a **Autenticação em Duas Etapas (2FA)** usando TOTP.
+- **Se 2FA inativo**: O login exige E-mail e Senha.
+- **Se 2FA ativo**: O login exige E-mail e Senha, seguido de uma verificação adicional pelo Código do Aplicativo (ex: Google Authenticator), aumentando drasticamente a segurança da conta. Adicionalmente, dispositivos podem ser "Lembrados" (Trusted Devices) de forma invisível emitindo cookies extras, garantindo que usuários regulares não precisem redigitar o código continuamente.
 
 ![Login](./assets/login.png)
 ![Cadastro](./assets/register.png)
@@ -84,12 +89,10 @@ Valida saldo suficiente, debita o token solicitado e registra a transação e a 
 
 ![Saque](./assets/withdraw.png)
 
-### Ledger (Extrato de Movimentações)
-Toda alteração de saldo gera registros imutáveis no ledger com tipo, token, valor, saldo anterior, saldo novo e data/hora. O saldo atual pode ser integralmente reconstruído a partir do histórico de movimentações.
+### Ledger Embutido (Auditoria de Movimentações)
+Toda alteração de saldo gera registros imutáveis no ledger interno com tipo, token, valor, saldo anterior, saldo novo e data/hora. O saldo atual pode ser integralmente reconstruído a partir do histórico de movimentações. No front-end, os registros do ledger podem ser visualizados ao expandir os detalhes de cada transação no Histórico.
 
 Tipos registrados: `DEPOSIT`, `SWAP_IN`, `SWAP_OUT`, `SWAP_FEE` e `WITHDRAWAL`.
-
-![Extrato](./assets/ledger.png)
 
 ### Histórico de transações
 Listagem paginada das transações do usuário com tipo (`DEPOSIT`, `SWAP`, `WITHDRAWAL`), tokens envolvidos, valores de origem e destino, taxa quando aplicável e data/hora.
@@ -109,8 +112,8 @@ docker compose -f deploy/composer/docker-compose.yml up --build -d
 ```
 
 Após a inicialização, a aplicação estará disponível em:
-- **Frontend & API Gateway:** [http://localhost:8001](http://localhost:8001)
-- **API REST direta:** [http://localhost:8001/api](http://localhost:8001/api)
+- **Frontend (Vite com Hot-Reload):** [http://localhost:5173](http://localhost:5173)
+- **API REST direta:** [http://localhost:8002/api](http://localhost:8002/api)
 
 ---
 
@@ -127,9 +130,9 @@ docker compose -f deploy/composer/docker-compose.prod.yml up --build -d
 
 ### Opção B: Vercel (Frontend estático) + Backend Cloud (Railway, Render, VPS)
 Para aproveitar a CDN global da Vercel para os arquivos estáticos:
-1. **Frontend na Vercel:** Suba apenas a pasta `/frontend` na Vercel (comando de build: `npm run build`, output: `build`). O arquivo de configuração `vercel.json` necessário está centralizado na pasta `/deploy/vercel` (basta copiá-lo para dentro do frontend na hora do deploy ou apontá-lo nas configurações). Ele garante o Rewrite automático da rota `/api/*` apontando para a sua API hospedada.
-2. **Variável Backend:** Cadastre na Vercel a variável `BACKEND_API_URL` com a URL do seu backend vivo (ex: `https://meu-backend.railway.app`).
-3. **Hospedagem do Backend:** Suba o backend utilizando Node.js tradicional + PM2, Docker ou Plataformas PaaS (como Render ou Railway), conectando a instâncias gerenciadas do PostgreSQL e do Redis. Certifique-se de preencher as variáveis do `.env` correspondentes.
+1. **Frontend na Vercel:** Suba apenas a pasta `/frontend` na Vercel (comando de build: `npm run build`, output: `dist`). O deploy na Vercel utiliza um arquivo `middleware.js` inteligente no Frontend, que atua como proxy reverso dinâmico para interceptar chamadas `/api/*` e encaminhá-las ao backend real. Isso resolve problemas de CORS e impede erros de Mixed Content (conteúdo misto) caso o backend não possua HTTPS nativo.
+2. **Variável Backend:** Cadastre na Vercel a variável de ambiente `BACKEND_API_URL` com a URL do seu backend vivo (ex: `http://82.38.28.138:8002`). O middleware lerá essa variável e fará o roteamento transparente.
+3. **Hospedagem do Backend:** Suba o backend utilizando Node.js tradicional + PM2, Docker ou Plataformas PaaS (como Render ou Railway), conectando a instâncias gerenciadas do PostgreSQL e do Redis. Certifique-se de preencher as variáveis do `.env` correspondentes e expor a porta correta.
 
 ### Opção C: Execução Manual (Sem Docker)
 
@@ -167,7 +170,9 @@ npm run seed
 
 > **Credenciais do Usuário Demo:**
 > - **E-mail:** `demo@nexus.com`
-> - **Senha:** `demo1234`
+> - **Senha:** `Demo@1234!`
+> 
+> *Dica: Se precisar rodar o seed dentro de um container de produção (onde a pasta src não existe e o tsx não está instalado globalmente), utilize o comando: `mkdir -p src/config && touch src/config/dotenv.ts && npx tsx prisma/seed.ts`*
 
 Inicie a API principal (escutando na porta `8002`):
 ```bash
@@ -194,9 +199,9 @@ npm start
 ```
 
 #### Acessando a aplicação
-Com os servidores rodando, acesse a URL unificada do Proxy Gateway:
-- **URL de acesso:** [http://localhost:8001](http://localhost:8001)
-  *(O Gateway redireciona as requisições de frontend para a porta 3000 mantendo o HMR ativo, e todas as rotas `/api/*` para a API Fastify).*
+Com os servidores rodando:
+- **Frontend:** [http://localhost:5173](http://localhost:5173) (O Vite fará proxy automático para o backend na porta 8002).
+- **Backend:** [http://localhost:8002/api](http://localhost:8002/api)
 
 ---
 
@@ -260,8 +265,12 @@ erDiagram
 
     User {
       String id PK "UUID"
+      String name "Nome de exibição"
+      String username UK "Username único"
       String email UK "E-mail único"
       String passwordHash "Senha criptografada"
+      Boolean twoFactorEnabled "Indicador de 2FA ativo"
+      String twoFactorSecret "Chave mestra Base32 para TOTP"
       DateTime createdAt "Data de criação"
       DateTime updatedAt "Última atualização"
     }

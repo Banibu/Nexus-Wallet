@@ -13,11 +13,13 @@ import bcrypt from 'bcryptjs';
 import Decimal from 'decimal.js';
 
 const prisma = new PrismaClient();
-const SUPPORTED = ['BRL', 'BTC', 'ETH', 'USDT'];
+const SUPPORTED = ['BRL', 'USD', 'BTC', 'ETH', 'USDT'];
 
 async function main() {
+  const name = 'Demo User';
+  const username = 'demouser';
   const email = 'demo@nexus.com';
-  const password = 'demo1234';
+  const password = 'Demo@1234!';
 
   // Delete existing demo user if exists to avoid conflicts and recreate clean mock history
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -31,6 +33,8 @@ async function main() {
   // 1. Create the user
   const user = await prisma.user.create({
     data: {
+      name,
+      username,
       email,
       passwordHash,
     },
@@ -46,6 +50,7 @@ async function main() {
   // 3. Create the wallet balances matching the final state of the mock transactions
   const finalBalances = {
     BRL: new Decimal('10000.00'),
+    USD: new Decimal('500.00'),
     BTC: new Decimal('0.045'),
     ETH: new Decimal('0.85'),
     USDT: new Decimal('350.00'),

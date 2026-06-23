@@ -1,36 +1,43 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import type { ReactElement } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import '@/App.css';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
 import AppShell from '@/components/layout/AppShell';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import DashboardPage from '@/pages/DashboardPage';
-import SwapPage from '@/pages/SwapPage';
-import WithdrawPage from '@/pages/WithdrawPage';
-import DepositPage from '@/pages/DepositPage';
-import TransactionsPage from '@/pages/TransactionsPage';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import AuditPage from '@/pages/AuditPage';
+import DashboardPage from '@/pages/DashboardPage';
+import DepositPage from '@/pages/DepositPage';
+import LoginPage from '@/pages/LoginPage';
+import ProfilePage from '@/pages/ProfilePage';
+import RegisterPage from '@/pages/RegisterPage';
+import SwapPage from '@/pages/SwapPage';
+import TransactionsPage from '@/pages/TransactionsPage';
+import WithdrawPage from '@/pages/WithdrawPage';
 
-import { ReactElement } from 'react';
+// ─── Route Guards ─────────────────────────────────────────────────────────────
 
 function PrivateRoute({ children }: { children: ReactElement }) {
     const { user } = useAuth();
-    if (!user) return <Navigate to="/login" replace />;
-    return children;
+    return user ? children : <Navigate to="/login" replace />;
 }
 
 function PublicRoute({ children }: { children: ReactElement }) {
     const { user } = useAuth();
-    if (user) return <Navigate to="/dashboard" replace />;
-    return children;
+    return user ? <Navigate to="/dashboard" replace /> : children;
 }
+
+// ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <Toaster theme="dark" position="bottom-center" richColors closeButton />
+                <Toaster
+                    theme="dark"
+                    position="bottom-center"
+                    richColors
+                    closeButton
+                />
                 <Routes>
                     <Route
                         path="/login"
@@ -48,6 +55,7 @@ export default function App() {
                             </PublicRoute>
                         }
                     />
+
                     <Route
                         element={
                             <PrivateRoute>
@@ -55,15 +63,26 @@ export default function App() {
                             </PrivateRoute>
                         }
                     >
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route
+                            index
+                            element={<Navigate to="/dashboard" replace />}
+                        />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/swap" element={<SwapPage />} />
                         <Route path="/withdraw" element={<WithdrawPage />} />
                         <Route path="/deposit" element={<DepositPage />} />
-                        <Route path="/transactions" element={<TransactionsPage />} />
+                        <Route
+                            path="/transactions"
+                            element={<TransactionsPage />}
+                        />
                         <Route path="/audit" element={<AuditPage />} />
+                        <Route path="/profile" element={<ProfilePage />} />
                     </Route>
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+                    <Route
+                        path="*"
+                        element={<Navigate to="/dashboard" replace />}
+                    />
                 </Routes>
             </AuthProvider>
         </BrowserRouter>

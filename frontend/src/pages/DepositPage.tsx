@@ -1,18 +1,37 @@
-import { useState, useEffect } from 'react';
+import { Loader2, RefreshCw, Repeat, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { api, toastError, getUser } from '@/lib/api';
-import { fmtDate, shortId } from '@/lib/format';
+import { FormField } from '@/components/common/FormField';
 import SectionHeader from '@/components/common/SectionHeader';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { FormField } from '@/components/common/FormField';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Wallet, RefreshCw, Repeat } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { api, getUser, toastError } from '@/lib/api';
+import { fmtDate, shortId } from '@/lib/format';
 
 export default function DepositPage() {
     const [idempotencyKey, setKey] = useState(uuidv4());
@@ -27,7 +46,9 @@ export default function DepositPage() {
     useEffect(() => {
         if (!user) return;
         try {
-            const stored = JSON.parse(sessionStorage.getItem(`deposit_attempts_${user.id}`) || '[]');
+            const stored = JSON.parse(
+                sessionStorage.getItem(`deposit_attempts_${user.id}`) || '[]',
+            );
             setAttempts(stored);
         } catch {
             /* ignore */
@@ -38,7 +59,10 @@ export default function DepositPage() {
         setAttempts((prev) => {
             const next = [a, ...prev].slice(0, 20);
             if (user) {
-                sessionStorage.setItem(`deposit_attempts_${user.id}`, JSON.stringify(next));
+                sessionStorage.setItem(
+                    `deposit_attempts_${user.id}`,
+                    JSON.stringify(next),
+                );
             }
             return next;
         });
@@ -98,28 +122,45 @@ export default function DepositPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-display flex items-center gap-2">
-                            <Wallet className="h-5 w-5 text-primary" /> Disparar webhook
+                            <Wallet className="h-5 w-5 text-primary" /> Disparar
+                            webhook
                         </CardTitle>
                         <CardDescription>
-                            Como esta é uma simulação para testes, o sistema utiliza uma chave de idempotência gerada automaticamente e dispara para a rota <code className="bg-secondary px-1.5 py-0.5 rounded text-xs text-foreground font-mono">POST /api/webhooks/deposit</code>.
+                            Como esta é uma simulação para testes, o sistema
+                            utiliza uma chave de idempotência gerada
+                            automaticamente e dispara para a rota{' '}
+                            <code className="bg-secondary px-1.5 py-0.5 rounded text-xs text-foreground font-mono">
+                                POST /api/webhooks/deposit
+                            </code>
+                            .
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField id="userId" label="userId (autenticado)">
-                            <Input id="userId" value={user?.id || ''} readOnly className="font-mono text-xs" />
+                            <Input
+                                id="userId"
+                                value={user?.id || ''}
+                                readOnly
+                                className="font-mono text-xs"
+                            />
                         </FormField>
 
                         <div className="grid grid-cols-2 gap-3">
                             <FormField id="token" label="Token">
                                 <Select value={token} onValueChange={setToken}>
-                                    <SelectTrigger id="token" data-testid="deposit-token-select">
+                                    <SelectTrigger
+                                        id="token"
+                                        data-testid="deposit-token-select"
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="BRL">BRL</SelectItem>
                                         <SelectItem value="BTC">BTC</SelectItem>
                                         <SelectItem value="ETH">ETH</SelectItem>
-                                        <SelectItem value="USDT">USDT</SelectItem>
+                                        <SelectItem value="USDT">
+                                            USDT
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </FormField>
@@ -128,7 +169,11 @@ export default function DepositPage() {
                                     id="amount"
                                     inputMode="decimal"
                                     value={amount}
-                                    onChange={(e) => setAmount(e.target.value.replace(',', '.'))}
+                                    onChange={(e) =>
+                                        setAmount(
+                                            e.target.value.replace(',', '.'),
+                                        )
+                                    }
                                     data-testid="deposit-amount-input"
                                 />
                             </FormField>
@@ -142,7 +187,8 @@ export default function DepositPage() {
                             >
                                 {sending ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando…
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />{' '}
+                                        Enviando…
                                     </>
                                 ) : (
                                     'Simular depósito'
@@ -154,7 +200,8 @@ export default function DepositPage() {
                                 disabled={sending}
                                 data-testid="deposit-repeat-webhook-button"
                             >
-                                <Repeat className="h-4 w-4 mr-1" /> Repetir mesma key
+                                <Repeat className="h-4 w-4 mr-1" /> Repetir
+                                mesma key
                             </Button>
                         </div>
                     </CardContent>
@@ -162,12 +209,17 @@ export default function DepositPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="font-display">Tentativas (sessão)</CardTitle>
+                        <CardTitle className="font-display">
+                            Tentativas (sessão)
+                        </CardTitle>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                                if (user) sessionStorage.removeItem(`deposit_attempts_${user.id}`);
+                                if (user)
+                                    sessionStorage.removeItem(
+                                        `deposit_attempts_${user.id}`,
+                                    );
                                 setAttempts([]);
                             }}
                         >
@@ -175,36 +227,65 @@ export default function DepositPage() {
                         </Button>
                     </CardHeader>
                     <CardContent>
-
-                        <div className="rounded-md border border-border overflow-x-auto" data-testid="deposit-attempts-table">
+                        <div
+                            className="rounded-md border border-border overflow-x-auto"
+                            data-testid="deposit-attempts-table"
+                        >
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Hora</TableHead>
                                         <TableHead>Key</TableHead>
                                         <TableHead>Token</TableHead>
-                                        <TableHead className="text-right">Valor</TableHead>
+                                        <TableHead className="text-right">
+                                            Valor
+                                        </TableHead>
                                         <TableHead>Status</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {attempts.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                                            <TableCell
+                                                colSpan={5}
+                                                className="text-center text-sm text-muted-foreground py-6"
+                                            >
                                                 Sem tentativas ainda.
                                             </TableCell>
                                         </TableRow>
                                     )}
                                     {attempts.map((a, i) => (
                                         <TableRow key={i}>
-                                            <TableCell className="text-xs">{fmtDate(a.at)}</TableCell>
-                                            <TableCell className="font-mono text-xs">{shortId(a.key)}</TableCell>
-                                            <TableCell><Badge variant="secondary">{a.token}</Badge></TableCell>
-                                            <TableCell className="text-right font-mono">{a.amount}</TableCell>
+                                            <TableCell className="text-xs">
+                                                {fmtDate(a.at)}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs">
+                                                {shortId(a.key)}
+                                            </TableCell>
                                             <TableCell>
-                                                {a.status === 'ok' && <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">creditado</Badge>}
-                                                {a.status === 'duplicate' && <Badge variant="outline">idempotente</Badge>}
-                                                {a.status === 'error' && <Badge variant="destructive">erro</Badge>}
+                                                <Badge variant="secondary">
+                                                    {a.token}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {a.amount}
+                                            </TableCell>
+                                            <TableCell>
+                                                {a.status === 'ok' && (
+                                                    <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                                                        creditado
+                                                    </Badge>
+                                                )}
+                                                {a.status === 'duplicate' && (
+                                                    <Badge variant="outline">
+                                                        idempotente
+                                                    </Badge>
+                                                )}
+                                                {a.status === 'error' && (
+                                                    <Badge variant="destructive">
+                                                        erro
+                                                    </Badge>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
