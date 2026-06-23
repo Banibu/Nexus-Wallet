@@ -22,6 +22,12 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       host: true, // Listen on all network interfaces
       allowedHosts: ['host.docker.internal', 'localhost', '127.0.0.1'],
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8002',
+          changeOrigin: true,
+        },
+      },
     },
     build: {
       outDir: 'dist',

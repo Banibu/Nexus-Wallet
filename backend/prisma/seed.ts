@@ -2,7 +2,12 @@
  * Seed script: creates demo user demo@nexus.com / demo1234 with realistic balances and transaction history.
  * Resets the demo user data if it already exists so that re-running guarantees a clean visual state.
  */
-import '../src/config/dotenv';
+// In production, the src folder does not exist and variables are already injected by the container
+try {
+  require('../src/config/dotenv');
+} catch (e) {
+  // Ignore if not found
+}
 import { PrismaClient, MovementType, TransactionType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import Decimal from 'decimal.js';
