@@ -25,5 +25,5 @@ ENV NODE_ENV=production
 
 EXPOSE 8002
 
-# Run Fastify API
-CMD ["node", "dist/server.js"]
+# Run migrations and start Fastify API
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
