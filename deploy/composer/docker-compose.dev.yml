@@ -43,11 +43,7 @@ services:
       - COINGECKO_BASE_URL
       - SWAP_FEE_PERCENT
       - WEBHOOK_SECRET
-      FRONTEND_DEV_TARGET: "http://host.docker.internal:5173"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
-      - "8001:8001"
       - "8002:8002"
     depends_on:
       - db
