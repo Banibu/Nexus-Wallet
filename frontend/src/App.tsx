@@ -9,7 +9,6 @@ import DashboardPage from '@/pages/DashboardPage';
 import SwapPage from '@/pages/SwapPage';
 import WithdrawPage from '@/pages/WithdrawPage';
 import DepositPage from '@/pages/DepositPage';
-import MovementsPage from '@/pages/MovementsPage';
 import TransactionsPage from '@/pages/TransactionsPage';
 import AuditPage from '@/pages/AuditPage';
 
@@ -61,7 +60,6 @@ export default function App() {
                         <Route path="/swap" element={<SwapPage />} />
                         <Route path="/withdraw" element={<WithdrawPage />} />
                         <Route path="/deposit" element={<DepositPage />} />
-                        <Route path="/movements" element={<MovementsPage />} />
                         <Route path="/transactions" element={<TransactionsPage />} />
                         <Route path="/audit" element={<AuditPage />} />
                     </Route>

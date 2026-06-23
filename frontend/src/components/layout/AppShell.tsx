@@ -22,7 +22,6 @@ const NAV_ITEMS = [
     { to: '/swap', label: 'Swap', icon: ArrowLeftRight, testid: 'nav-swap' },
     { to: '/withdraw', label: 'Saque', icon: ArrowDownToLine, testid: 'nav-withdraw' },
     { to: '/deposit', label: 'Depósito', icon: Wallet, testid: 'nav-deposit' },
-    { to: '/movements', label: 'Movimentações', icon: History, testid: 'nav-movements' },
     { to: '/transactions', label: 'Transações', icon: Receipt, testid: 'nav-transactions' },
     { to: '/audit', label: 'Auditoria', icon: ShieldCheck, testid: 'nav-audit' },
 ];
