@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['host.docker.internal', 'localhost', '127.0.0.1'],
     },
     build: {
-      outDir: 'build',
+      outDir: 'dist',
       emptyOutDir: true,
     },
   };
