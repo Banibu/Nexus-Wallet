@@ -9,6 +9,10 @@ services:
       - "5432:5432"
     volumes:
       - pgdata_prod:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
 
   redis:
     image: redis:7-alpine
@@ -26,9 +30,19 @@ services:
     container_name: nexus-backend-prod
     restart: always
     environment:
-      NODE_ENV: production
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public"
-      REDIS_URL: "redis://redis:6379"
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - HOST=0.0.0.0
+      - PORT=8002
+      - JWT_ACCESS_SECRET
+      - JWT_REFRESH_SECRET
+      - ACCESS_TOKEN_TTL
+      - REFRESH_TOKEN_TTL_DAYS
+      - COINGECKO_API_KEY
+      - COINGECKO_BASE_URL
+      - SWAP_FEE_PERCENT
+      - WEBHOOK_SECRET
     ports:
       - "8002:8002"
     depends_on:
