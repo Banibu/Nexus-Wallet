@@ -131,7 +131,7 @@ docker compose -f deploy/composer/docker-compose.prod.yml up --build -d
 ### Opção B: Vercel (Frontend estático) + Backend Cloud (Railway, Render, VPS)
 Para aproveitar a CDN global da Vercel para os arquivos estáticos:
 1. **Frontend na Vercel:** Suba apenas a pasta `/frontend` na Vercel (comando de build: `npm run build`, output: `dist`). O deploy na Vercel utiliza um arquivo `middleware.js` inteligente no Frontend, que atua como proxy reverso dinâmico para interceptar chamadas `/api/*` e encaminhá-las ao backend real. Isso resolve problemas de CORS e impede erros de Mixed Content (conteúdo misto) caso o backend não possua HTTPS nativo.
-2. **Variável Backend:** Cadastre na Vercel a variável de ambiente `BACKEND_API_URL` com a URL do seu backend vivo (ex: `http://82.38.28.138:8002`). O middleware lerá essa variável e fará o roteamento transparente.
+2. **Variável Backend:** Cadastre na Vercel a variável de ambiente `VITE_API_URL` com a URL do seu backend vivo (ex: `https://123.456.78.9:8002`). O middleware lerá essa variável e fará o roteamento transparente.
 3. **Hospedagem do Backend:** Suba o backend utilizando Node.js tradicional + PM2, Docker ou Plataformas PaaS (como Render ou Railway), conectando a instâncias gerenciadas do PostgreSQL e do Redis. Certifique-se de preencher as variáveis do `.env` correspondentes e expor a porta correta.
 
 ### Opção C: Execução Manual (Sem Docker)
