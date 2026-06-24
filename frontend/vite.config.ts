@@ -3,8 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
-  // Load env variables from the root directory
+  // Load env variables from the repository root and also allow Vercel project env vars.
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '');
+  const apiUrl = process.env.VITE_API_URL || env.VITE_API_URL || process.env.REACT_APP_BACKEND_URL || env.REACT_APP_BACKEND_URL || '';
 
   return {
     plugins: [react()],
@@ -15,7 +16,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      'process.env.REACT_APP_BACKEND_URL': JSON.stringify(env.REACT_APP_BACKEND_URL || ''),
+      'process.env.REACT_APP_BACKEND_URL': JSON.stringify(apiUrl),
     },
     server: {
       port: 5173,

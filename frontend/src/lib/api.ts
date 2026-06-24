@@ -4,7 +4,7 @@ import type { User } from '@/context/AuthContext';
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL ?? '';
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL ?? '').replace(/\/$/, '');
 export const API = `${BACKEND_URL}/api`;
 
 // ─── localStorage Keys ────────────────────────────────────────────────────────
