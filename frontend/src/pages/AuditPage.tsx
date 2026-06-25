@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api, toastError } from '@/lib/api';
 import { fmtNumber } from '@/lib/format';
 
-const TOKENS = ['BRL', 'BTC', 'ETH'];
+const TOKENS = ['BRL', 'BTC', 'ETH', 'USDT'];
 
 export default function AuditPage() {
     const [token, setToken] = useState('BRL');

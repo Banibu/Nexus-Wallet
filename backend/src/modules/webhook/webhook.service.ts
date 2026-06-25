@@ -10,7 +10,7 @@ export async function processDeposit(dto: DepositWebhookDTO) {
 	if (!isSupportedToken(token)) {
 		throw BadRequest(
 			"TOKEN_NOT_SUPPORTED",
-			`Token não suportado: ${token}. Use BRL, USD, BTC, ETH ou USDT.`,
+			`Token não suportado: ${token}. Use BRL, BTC, ETH ou USDT.`,
 		);
 	}
 

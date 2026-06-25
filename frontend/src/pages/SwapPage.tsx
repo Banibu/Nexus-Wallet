@@ -95,7 +95,7 @@ export default function SwapPage() {
         <div className="space-y-6">
             <SectionHeader
                 title="Swap"
-                subtitle="Converta entre BRL, USD, BTC, ETH e USDT com cotações atualizadas em tempo real."
+                subtitle="Converta entre BRL, BTC, ETH e USDT com cotações atualizadas em tempo real."
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

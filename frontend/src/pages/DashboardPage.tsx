@@ -3,7 +3,7 @@ import {
     ArrowLeftRight,
     Bitcoin,
     Coins,
-    DollarSign,
+    Banknote,
     Wallet,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,14 +16,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { api, toastError } from '@/lib/api';
 import { fmtNumber } from '@/lib/format';
 
+const QUOTE_TOKENS = ['BTC', 'ETH', 'USDT'];
+
 const TOKEN_META = {
     BRL: {
         label: 'Real Brasileiro',
-        icon: DollarSign,
+        icon: Banknote,
         color: 'text-emerald-300',
     },
     BTC: { label: 'Bitcoin', icon: Bitcoin, color: 'text-amber-300' },
     ETH: { label: 'Ethereum', icon: Coins, color: 'text-indigo-300' },
+    USDT: { label: 'Tether', icon: Coins, color: 'text-cyan-300' },
 };
 
 async function fetchQuoteSafe(from, to, amount) {
@@ -39,20 +42,23 @@ async function fetchQuoteSafe(from, to, amount) {
 
 export default function DashboardPage() {
     const [balances, setBalances] = useState<any | null>(null);
-    const [rates, setRates] = useState({ BTC: null, ETH: null });
+    const [rates, setRates] = useState<Record<string, number | null>>({});
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
     const refresh = useCallback(async () => {
         setRefreshing(true);
         try {
-            const [walletRes, btcRate, ethRate] = await Promise.all([
+            const [walletRes, ...quoteRates] = await Promise.all([
                 api.get('/wallet/balances'),
-                fetchQuoteSafe('BTC', 'BRL', '1'),
-                fetchQuoteSafe('ETH', 'BRL', '1'),
+                ...QUOTE_TOKENS.map((token) => fetchQuoteSafe(token, 'BRL', '1')),
             ]);
             setBalances(walletRes.data.balances);
-            setRates({ BTC: btcRate, ETH: ethRate });
+            setRates(
+                Object.fromEntries(
+                    QUOTE_TOKENS.map((token, index) => [token, quoteRates[index]]),
+                ),
+            );
         } catch (e) {
             toastError(e);
         } finally {
@@ -73,8 +79,7 @@ export default function DashboardPage() {
         for (const b of balances) {
             const amt = Number(b.amount);
             if (b.token === 'BRL') total += amt;
-            else if (b.token === 'BTC' && rates.BTC) total += amt * rates.BTC;
-            else if (b.token === 'ETH' && rates.ETH) total += amt * rates.ETH;
+            else if (rates[b.token]) total += amt * rates[b.token]!;
         }
         return total;
     }, [balances, rates]);
@@ -83,7 +88,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <SectionHeader
                 title="Visão Geral"
-                subtitle="Acompanhe os saldos da sua carteira e converta entre BRL, BTC e ETH em tempo real."
+                subtitle="Acompanhe os saldos da sua carteira e converta entre BRL, BTC, ETH e USDT em tempo real."
             />
 
             <Card className="bg-gradient-to-br from-card to-card/40 border-border">
@@ -100,15 +105,12 @@ export default function DashboardPage() {
                             R$ {fmtNumber(totalBRL, { token: 'BRL' })}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                            {rates.BTC
-                                ? 'BTC R$ ' +
-                                  fmtNumber(rates.BTC, { token: 'BRL' })
-                                : ''}
-                            {rates.BTC && rates.ETH ? ' · ' : ''}
-                            {rates.ETH
-                                ? 'ETH R$ ' +
-                                  fmtNumber(rates.ETH, { token: 'BRL' })
-                                : ''}
+                            {QUOTE_TOKENS.filter((token) => rates[token])
+                                .map(
+                                    (token) =>
+                                        `${token} R$ ${fmtNumber(rates[token], { token: 'BRL' })}`,
+                                )
+                                .join(' · ')}
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -160,10 +162,8 @@ export default function DashboardPage() {
                           const Icon = meta.icon;
                           let brl = null;
                           if (b.token === 'BRL') brl = Number(b.amount);
-                          else if (b.token === 'BTC' && rates.BTC)
-                              brl = Number(b.amount) * rates.BTC;
-                          else if (b.token === 'ETH' && rates.ETH)
-                              brl = Number(b.amount) * rates.ETH;
+                          else if (rates[b.token])
+                              brl = Number(b.amount) * rates[b.token]!;
                           return (
                               <Card
                                   key={b.token}

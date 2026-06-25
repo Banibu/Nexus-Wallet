@@ -11,6 +11,8 @@
     "prisma:migrate": "node scripts/prisma.js migrate deploy",
     "prisma:push": "node scripts/prisma.js db push",
     "seed": "tsx prisma/seed.ts",
+    "seed:check": "tsc -p tsconfig.seed.json --noEmit",
+    "seed:build": "tsc -p tsconfig.seed.json",
     "poc": "tsx scripts/poc.ts",
     "test": "vitest run",
     "test:watch": "vitest",

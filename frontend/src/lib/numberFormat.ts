@@ -91,10 +91,11 @@ export function formatAmount(
     }
 
     const token = normalizeCurrency(currency);
-    const maximumFractionDigits = token === 'BTC' || token === 'ETH' ? 8 : 6;
+    const isFiatOrStable = token === 'USDT';
+    const maximumFractionDigits = token === 'BTC' || token === 'ETH' ? 8 : isFiatOrStable ? 2 : 6;
 
     return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
+        minimumFractionDigits: isFiatOrStable ? 2 : 0,
         maximumFractionDigits,
     }).format(n);
 }

@@ -68,7 +68,7 @@ export default function RegisterPage() {
                         Criar conta
                     </CardTitle>
                     <CardDescription>
-                        Sua carteira será criada com BRL, BTC e ETH zerados
+                        Sua carteira será criada com BRL, BTC, ETH e USDT zerados
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

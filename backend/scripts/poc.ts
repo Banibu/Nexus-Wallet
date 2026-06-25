@@ -47,7 +47,7 @@ async function testRedis() {
 async function fetchCoinGeckoPrices() {
   const url = `${CG_URL}/simple/price`;
   const res = await axios.get(url, {
-    params: { ids: 'bitcoin,ethereum', vs_currencies: 'brl,usd' },
+    params: { ids: 'bitcoin,ethereum', vs_currencies: 'brl' },
     headers: { 'x-cg-demo-api-key': CG_KEY, accept: 'application/json' },
     timeout: 15000,
   });

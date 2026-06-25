@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 const FEATURES = [
     { icon: ShieldCheck, label: 'Segurança de nível bancário' },
-    { icon: Zap, label: 'Conversões em tempo real entre BRL, BTC e ETH' },
+    { icon: Zap, label: 'Conversões em tempo real entre BRL, BTC, ETH e USDT' },
     {
         icon: LineChart,
         label: 'Extrato completo e transparente das suas operações',
@@ -42,7 +42,7 @@ export function AuthSidebar() {
                     real.
                 </h1>
                 <p className="mt-4 text-muted-foreground max-w-md">
-                    Gerencie BRL, BTC e ETH em um único lugar. Receba depósitos,
+                    Gerencie BRL, BTC, ETH e USDT em um único lugar. Receba depósitos,
                     converta entre ativos e realize saques com extrato detalhado
                     de todas as suas operações.
                 </p>

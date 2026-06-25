@@ -162,7 +162,6 @@ export default function WithdrawPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="BRL">BRL</SelectItem>
-
                                         <SelectItem value="BTC">BTC</SelectItem>
                                         <SelectItem value="ETH">ETH</SelectItem>
                                         <SelectItem value="USDT">

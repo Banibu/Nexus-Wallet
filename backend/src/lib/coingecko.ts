@@ -16,10 +16,9 @@ const TOKEN_TO_CG_ID: Record<string, string> = {
 	BTC: "bitcoin",
 	ETH: "ethereum",
 	USDT: "tether",
-	// BRL is a fiat — not a coingecko id; handled separately
 };
 
-const FIAT_VS_CURRENCIES = new Set(["BRL", "USD", "EUR"]);
+const FIAT_VS_CURRENCIES = new Set(["BRL"]);
 
 const CACHE_TTL_SECONDS = 30;
 
@@ -32,7 +31,7 @@ export interface QuoteData {
 
 /**
  * Returns rate such that: 1 unit of `from` = rate units of `to`.
- * Supports crypto<->BRL and crypto<->crypto.
+ * Supports crypto/fiat and crypto/crypto pairs supported by CoinGecko.
  */
 export async function getRate(from: string, to: string): Promise<QuoteData> {
 	if (from === to) {
@@ -84,15 +83,15 @@ export async function getRate(from: string, to: string): Promise<QuoteData> {
 		if (price === undefined) throw new Error(`No price for ${to}/${from}`);
 		rate = new Decimal(1).dividedBy(price);
 	} else if (!fromIsFiat && !toIsFiat) {
-		// crypto -> crypto (cross via USD)
+		// crypto -> crypto using CoinGecko BRL prices
 		const idFrom = TOKEN_TO_CG_ID[from];
 		const idTo = TOKEN_TO_CG_ID[to];
 		if (!idFrom || !idTo) throw new Error(`Unsupported pair: ${from}/${to}`);
 		const res = await CG.get("/simple/price", {
-			params: { ids: `${idFrom},${idTo}`, vs_currencies: "usd" },
+			params: { ids: `${idFrom},${idTo}`, vs_currencies: "brl" },
 		});
-		const pFrom = res.data?.[idFrom]?.usd;
-		const pTo = res.data?.[idTo]?.usd;
+		const pFrom = res.data?.[idFrom]?.brl;
+		const pTo = res.data?.[idTo]?.brl;
 		if (!pFrom || !pTo) throw new Error(`No cross prices for ${from}/${to}`);
 		rate = new Decimal(pFrom).dividedBy(pTo);
 	} else {
