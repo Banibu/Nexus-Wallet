@@ -1,20 +1,22 @@
+import { formatAmount, isBrlCurrency } from './numberFormat';
+
 export function fmtNumber(
     value: number | string | null | undefined,
     opts: { token?: string; maxDigits?: number } = {},
 ) {
-    if (value === null || value === undefined) return '—';
-    const n = typeof value === 'string' ? Number(value) : value;
-    if (Number.isNaN(n)) return String(value);
+    if (value === null || value === undefined || value === '') return '—';
+
     const { token, maxDigits } = opts;
-    let frac = maxDigits;
-    if (frac === undefined) {
-        if (token === 'BRL') frac = 2;
-        else if (token === 'BTC' || token === 'ETH') frac = 8;
-        else frac = 6;
+    if (token) {
+        return formatAmount(value, token);
     }
+
+    const n = typeof value === 'string' ? Number(value) : value;
+    if (!Number.isFinite(n)) return String(value);
+
     return new Intl.NumberFormat('pt-BR', {
-        minimumFractionDigits: token === 'BRL' ? 2 : 0,
-        maximumFractionDigits: frac,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: maxDigits ?? 6,
     }).format(n);
 }
 
@@ -23,6 +25,25 @@ export function fmtToken(
     token: string,
 ) {
     return `${fmtNumber(value, { token })} ${token}`;
+}
+
+export function fmtRate(
+    value: number | string | null | undefined,
+    quoteToken: string,
+    maxDigits = 8,
+) {
+    if (value === null || value === undefined || value === '') return '—';
+
+    const n = typeof value === 'string' ? Number(value) : value;
+    if (!Number.isFinite(n)) return String(value);
+
+    return new Intl.NumberFormat(
+        isBrlCurrency(quoteToken) ? 'pt-BR' : 'en-US',
+        {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: maxDigits,
+        },
+    ).format(n);
 }
 
 export function fmtDate(iso: string | Date | null | undefined) {

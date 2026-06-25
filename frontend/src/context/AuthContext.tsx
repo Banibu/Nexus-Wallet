@@ -6,7 +6,14 @@ import {
     useEffect,
     useState,
 } from 'react';
-import { api, clearTokens, getUser, setTokens, setUser } from '@/lib/api';
+import {
+    api,
+    clearTokens,
+    getUser,
+    hasStoredAuthSession,
+    setTokens,
+    setUser,
+} from '@/lib/api';
 
 // ─── Domain Types ─────────────────────────────────────────────────────────────
 
@@ -37,6 +44,7 @@ export type LoginResponse = Requires2FAResponse | LoginSuccessResponse;
 interface AuthContextType {
     user: User | null;
     loading: boolean;
+    authReady: boolean;
     checkEmail: (email: string) => Promise<{ twoFactorEnabled: boolean }>;
     login: (
         email: string,
@@ -63,8 +71,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setLocalUser] = useState<User | null>(getUser);
+    const [user, setLocalUser] = useState<User | null>(() => {
+        return hasStoredAuthSession() ? getUser() : null;
+    });
     const [loading, setLoading] = useState(false);
+    const [authReady, setAuthReady] = useState(false);
 
     const persistUser = useCallback((u: User | null, remember: boolean = true) => {
         setUser(u, remember);
@@ -105,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ): Promise<LoginResponse> => {
             setLoading(true);
             try {
+                clearTokens();
                 const { data } = await api.post<LoginResponse>('/auth/login', {
                     email,
                     password,
@@ -112,12 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 });
 
                 if (data.requires2FA) {
+                    persistUser(null, remember);
                     return data;
                 }
 
                 const success = data as LoginSuccessResponse;
                 setTokens(success, remember);
                 persistUser(success.user, remember);
+                setAuthReady(true);
                 return success;
             } finally {
                 setLoading(false);
@@ -134,13 +148,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ): Promise<User> => {
             setLoading(true);
             try {
+                if (!/^\d{6}$/.test(code)) {
+                    throw new Error('Informe o código de 6 dígitos.');
+                }
+
+                clearTokens();
                 const { data } = await api.post<LoginSuccessResponse>(
                     '/auth/login/totp',
                     { email, code, remember },
                 );
                 setTokens(data, remember);
                 persistUser(data.user, remember);
+                setAuthReady(true);
                 return data.user;
+            } catch (error) {
+                clearTokens();
+                setLocalUser(null);
+                throw error;
             } finally {
                 setLoading(false);
             }
@@ -156,13 +180,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ): Promise<User> => {
             setLoading(true);
             try {
+                if (!/^\d{6}$/.test(code)) {
+                    throw new Error('Informe o código de 6 dígitos.');
+                }
+
+                clearTokens();
                 const { data } = await api.post<LoginSuccessResponse>(
                     '/auth/login/2fa',
                     { tempToken, code, remember },
                 );
                 setTokens(data, remember);
                 persistUser(data.user, remember);
+                setAuthReady(true);
                 return data.user;
+            } catch (error) {
+                clearTokens();
+                setLocalUser(null);
+                throw error;
             } finally {
                 setLoading(false);
             }
@@ -178,12 +212,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ): Promise<User> => {
             setLoading(true);
             try {
+                clearTokens();
                 const { data } = await api.post<LoginSuccessResponse>(
                     '/auth/register',
                     { name, email, password },
                 );
                 setTokens(data, true);
                 persistUser(data.user, true);
+                setAuthReady(true);
                 return data.user;
             } finally {
                 setLoading(false);
@@ -196,25 +232,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             await api.post('/auth/logout');
         } catch {
-            // Best-effort: the session cookies and local state are cleared regardless
+            // Best-effort logout: local state is cleared regardless of API status.
         } finally {
             clearTokens();
             setLocalUser(null);
+            setAuthReady(true);
         }
     }, []);
 
     useEffect(() => {
-        const storedUser = getUser();
-        if (!storedUser) return;
+        let cancelled = false;
 
-        const remember = !!localStorage.getItem('nexus.user');
-
-        api.get<{ user: User }>('/auth/me')
-            .then(({ data }) => persistUser(data.user, remember))
-            .catch(() => {
+        async function bootstrapAuth() {
+            if (!hasStoredAuthSession()) {
                 clearTokens();
+                if (!cancelled) {
+                    setLocalUser(null);
+                    setAuthReady(true);
+                }
+                return;
+            }
+
+            const storedUser = getUser();
+            if (storedUser && !cancelled) {
+                setLocalUser(storedUser);
+            }
+
+            try {
+                const remember = !!localStorage.getItem('nexus.user');
+                const { data } = await api.get<{ user: User }>('/auth/me');
+                if (!cancelled) {
+                    persistUser(data.user, remember);
+                }
+            } catch {
+                clearTokens();
+                if (!cancelled) {
+                    setLocalUser(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setAuthReady(true);
+                }
+            }
+        }
+
+        bootstrapAuth();
+
+        const syncAuthState = () => {
+            if (!hasStoredAuthSession()) {
                 setLocalUser(null);
-            });
+            }
+        };
+
+        window.addEventListener('nexus-auth-state-changed', syncAuthState);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('nexus-auth-state-changed', syncAuthState);
+        };
     }, [persistUser]);
 
     return (
@@ -222,6 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             value={{
                 user,
                 loading,
+                authReady,
                 checkEmail,
                 login,
                 loginTotp,

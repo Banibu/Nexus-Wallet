@@ -16,13 +16,23 @@ import WithdrawPage from '@/pages/WithdrawPage';
 
 // ─── Route Guards ─────────────────────────────────────────────────────────────
 
+function AuthGate() {
+    return (
+        <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+            Carregando sessão…
+        </div>
+    );
+}
+
 function PrivateRoute({ children }: { children: ReactElement }) {
-    const { user } = useAuth();
+    const { user, authReady } = useAuth();
+    if (!authReady) return <AuthGate />;
     return user ? children : <Navigate to="/login" replace />;
 }
 
 function PublicRoute({ children }: { children: ReactElement }) {
-    const { user } = useAuth();
+    const { user, authReady } = useAuth();
+    if (!authReady) return <AuthGate />;
     return user ? <Navigate to="/dashboard" replace /> : children;
 }
 

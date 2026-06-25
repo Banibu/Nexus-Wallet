@@ -1,4 +1,4 @@
-import axios, { type AxiosError } from 'axios';
+import axios, { AxiosHeaders, type AxiosError } from 'axios';
 import { toast } from 'sonner';
 import type { User } from '@/context/AuthContext';
 
@@ -15,6 +15,12 @@ const STORAGE_KEYS = {
     user: 'nexus.user',
 } as const;
 
+export function notifyAuthStateChanged(): void {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('nexus-auth-state-changed'));
+    }
+}
+
 // ─── Token Storage ────────────────────────────────────────────────────────────
 
 export function getAccessToken(): string | null {
@@ -23,6 +29,10 @@ export function getAccessToken(): string | null {
 
 export function getRefreshToken(): string | null {
     return localStorage.getItem(STORAGE_KEYS.refreshToken) || sessionStorage.getItem(STORAGE_KEYS.refreshToken);
+}
+
+export function hasStoredAuthSession(): boolean {
+    return Boolean(getAccessToken() || getRefreshToken());
 }
 
 export interface TokenPayload {
@@ -34,14 +44,13 @@ export function setTokens({ accessToken, refreshToken }: TokenPayload, remember:
     const storage = remember ? localStorage : sessionStorage;
     const otherStorage = remember ? sessionStorage : localStorage;
 
-    // Clean up other storage to avoid dual state
     otherStorage.removeItem(STORAGE_KEYS.accessToken);
     otherStorage.removeItem(STORAGE_KEYS.refreshToken);
 
-    if (accessToken)
-        storage.setItem(STORAGE_KEYS.accessToken, accessToken);
-    if (refreshToken)
-        storage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
+    if (accessToken) storage.setItem(STORAGE_KEYS.accessToken, accessToken);
+    if (refreshToken) storage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
+
+    notifyAuthStateChanged();
 }
 
 export function clearTokens(): void {
@@ -51,6 +60,7 @@ export function clearTokens(): void {
     sessionStorage.removeItem(STORAGE_KEYS.accessToken);
     sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
     sessionStorage.removeItem(STORAGE_KEYS.user);
+    notifyAuthStateChanged();
 }
 
 // ─── User Storage ─────────────────────────────────────────────────────────────
@@ -65,13 +75,19 @@ export function getUser(): User | null {
 }
 
 export function setUser(u: User | null, remember: boolean = true): void {
-    if (u) {
-        const storage = remember ? localStorage : sessionStorage;
-        const otherStorage = remember ? sessionStorage : localStorage;
-
-        otherStorage.removeItem(STORAGE_KEYS.user);
-        storage.setItem(STORAGE_KEYS.user, JSON.stringify(u));
+    if (!u) {
+        localStorage.removeItem(STORAGE_KEYS.user);
+        sessionStorage.removeItem(STORAGE_KEYS.user);
+        notifyAuthStateChanged();
+        return;
     }
+
+    const storage = remember ? localStorage : sessionStorage;
+    const otherStorage = remember ? sessionStorage : localStorage;
+
+    otherStorage.removeItem(STORAGE_KEYS.user);
+    storage.setItem(STORAGE_KEYS.user, JSON.stringify(u));
+    notifyAuthStateChanged();
 }
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
@@ -82,7 +98,7 @@ export const api = axios.create({
     withCredentials: true,
 });
 
-// Attach the access token to every outgoing request
+// Attach the access token to every outgoing request.
 api.interceptors.request.use((config) => {
     const token = getAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -90,16 +106,22 @@ api.interceptors.request.use((config) => {
 });
 
 // ─── Transparent Token Refresh ────────────────────────────────────────────────
-// When a request fails with 401, we try to silently refresh the access token
-// using the refresh token (sent via cookie or stored locally).
-// All concurrent 401s share the same refresh promise to avoid duplicate calls.
+// Protected requests may receive 401 when the access token expires. In that case,
+// refresh once, replay the original request, and clear the local session if refresh
+// also fails. Login and 2FA routes are never refreshed because a 401 there simply
+// means the credentials or TOTP code were rejected.
 
 let pendingRefresh: Promise<string> | null = null;
 
 async function tryRefreshAccessToken(): Promise<string> {
     if (pendingRefresh) return pendingRefresh;
 
-    const refreshToken = getRefreshToken() ?? '';
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+        clearTokens();
+        throw new Error('No refresh token available');
+    }
+
     const remember = !!localStorage.getItem(STORAGE_KEYS.refreshToken);
 
     pendingRefresh = axios
@@ -109,8 +131,10 @@ async function tryRefreshAccessToken(): Promise<string> {
             { withCredentials: true },
         )
         .then((response) => {
-            setTokens(response.data);
-            return response.data.accessToken as string;
+            const newToken = response.data.accessToken;
+            if (!newToken) throw new Error('Refresh did not return an access token');
+            setTokens(response.data, remember);
+            return newToken;
         })
         .catch((error) => {
             clearTokens();
@@ -137,11 +161,11 @@ api.interceptors.response.use(
             originalRequest!._retry = true;
             try {
                 const newToken = await tryRefreshAccessToken();
-                originalRequest!.headers!.Authorization = `Bearer ${newToken}`;
+                originalRequest!.headers = originalRequest!.headers ?? new AxiosHeaders();
+                originalRequest!.headers.Authorization = `Bearer ${newToken}`;
                 return api(originalRequest!);
             } catch {
-                // Refresh failed — redirect to login
-                if (typeof window !== 'undefined') {
+                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
                     window.location.href = '/login';
                 }
             }

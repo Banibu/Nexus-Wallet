@@ -31,7 +31,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { api, getUser, toastError } from '@/lib/api';
-import { fmtDate, shortId } from '@/lib/format';
+import { fmtDate, fmtNumber, shortId } from '@/lib/format';
+import { getAmountInputError, normalizeApiAmount } from '@/lib/numberFormat';
 
 export default function DepositPage() {
     const [idempotencyKey, setKey] = useState(uuidv4());
@@ -40,6 +41,8 @@ export default function DepositPage() {
     const [attempts, setAttempts] = useState<any[]>([]);
     const [sending, setSending] = useState(false);
     const user = getUser();
+    const parsedAmount = normalizeApiAmount(amount, token);
+    const amountError = getAmountInputError(amount, token);
 
     const newKey = () => setKey(uuidv4());
 
@@ -75,18 +78,24 @@ export default function DepositPage() {
         if (!repeatSameKey) {
             setKey(keyToUse);
         }
+        const parsedAmount = normalizeApiAmount(amount, token);
+        if (!parsedAmount) {
+            toast.error('Valor de depósito inválido');
+            setSending(false);
+            return;
+        }
         try {
             const { data } = await api.post('/webhooks/deposit', {
                 userId: user.id,
                 token,
-                amount,
+                amount: parsedAmount,
                 idempotencyKey: keyToUse,
             });
             saveAttempt({
                 at: new Date().toISOString(),
                 key: keyToUse,
                 token,
-                amount,
+                amount: parsedAmount,
                 status: data.status,
                 txId: data.transactionId,
                 msg: data.message || null,
@@ -94,7 +103,9 @@ export default function DepositPage() {
             if (data.status === 'duplicate') {
                 toast.info('Idempotency válida: depo não foi duplicado');
             } else {
-                toast.success(`Depósito creditado • ${amount} ${token}`);
+                toast.success(
+                    `Depósito creditado • ${fmtNumber(parsedAmount, { token })} ${token}`,
+                );
             }
         } catch (e) {
             toastError(e);
@@ -102,7 +113,7 @@ export default function DepositPage() {
                 at: new Date().toISOString(),
                 key: keyToUse,
                 token,
-                amount,
+                amount: parsedAmount,
                 status: 'error',
                 msg: e?.response?.data?.error?.message || e.message,
             });
@@ -168,20 +179,29 @@ export default function DepositPage() {
                                 <Input
                                     id="amount"
                                     inputMode="decimal"
-                                    value={amount}
-                                    onChange={(e) =>
-                                        setAmount(
-                                            e.target.value.replace(',', '.'),
-                                        )
+                                    placeholder={
+                                        token === 'BRL' ? '0,00' : '0.00'
                                     }
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
                                     data-testid="deposit-amount-input"
+                                    className={
+                                        amountError
+                                            ? 'border-destructive focus-visible:ring-destructive'
+                                            : ''
+                                    }
                                 />
+                                {amountError && (
+                                    <p className="text-xs text-destructive mt-1">
+                                        {amountError}
+                                    </p>
+                                )}
                             </FormField>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                             <Button
                                 onClick={() => fire(false)}
-                                disabled={sending}
+                                disabled={sending || !parsedAmount}
                                 className="flex-1"
                                 data-testid="deposit-fire-webhook-button"
                             >
@@ -197,7 +217,7 @@ export default function DepositPage() {
                             <Button
                                 variant="secondary"
                                 onClick={() => fire(true)}
-                                disabled={sending}
+                                disabled={sending || !parsedAmount}
                                 data-testid="deposit-repeat-webhook-button"
                             >
                                 <Repeat className="h-4 w-4 mr-1" /> Repetir
@@ -268,7 +288,9 @@ export default function DepositPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right font-mono">
-                                                {a.amount}
+                                                {fmtNumber(a.amount, {
+                                                    token: a.token,
+                                                })}
                                             </TableCell>
                                             <TableCell>
                                                 {a.status === 'ok' && (

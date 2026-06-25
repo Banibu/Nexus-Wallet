@@ -26,6 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api, toastError } from '@/lib/api';
 import { fmtDate, fmtNumber, shortId } from '@/lib/format';
+import { getAmountInputError, normalizeApiAmount } from '@/lib/numberFormat';
 
 export default function WithdrawPage() {
     const [token, setToken] = useState('BRL');
@@ -33,6 +34,8 @@ export default function WithdrawPage() {
     const [submitting, setSubmitting] = useState(false);
     const [recent, setRecent] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const parsedAmount = normalizeApiAmount(amount, token);
+    const amountError = getAmountInputError(amount, token);
 
     // Form states for BRL
     const [brlMethod, setBrlMethod] = useState<'pix' | 'bank'>('pix');
@@ -103,13 +106,22 @@ export default function WithdrawPage() {
             finalAddress = cryptoAddress.trim();
         }
 
+        const parsedAmount = normalizeApiAmount(amount, token);
+        if (!parsedAmount) {
+            toast.error('Valor de saque inválido');
+            setSubmitting(false);
+            return;
+        }
+
         try {
             const { data } = await api.post('/withdrawals', {
                 token,
-                amount,
+                amount: parsedAmount,
                 destinationAddress: finalAddress,
             });
-            toast.success(`Saque registrado: ${data.amount} ${data.token}`);
+            toast.success(
+                `Saque registrado: ${fmtNumber(data.amount, { token: data.token })} ${data.token}`,
+            );
             setAmount('');
             setPixKey('');
             setCryptoAddress('');
@@ -163,15 +175,23 @@ export default function WithdrawPage() {
                                 <Input
                                     id="amount"
                                     inputMode="decimal"
-                                    placeholder="0,00"
-                                    value={amount}
-                                    onChange={(e) =>
-                                        setAmount(
-                                            e.target.value.replace(',', '.'),
-                                        )
+                                    placeholder={
+                                        token === 'BRL' ? '0,00' : '0.00'
                                     }
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
                                     data-testid="withdraw-amount-input"
+                                    className={
+                                        amountError
+                                            ? 'border-destructive focus-visible:ring-destructive'
+                                            : ''
+                                    }
                                 />
+                                {amountError && (
+                                    <p className="text-xs text-destructive mt-1">
+                                        {amountError}
+                                    </p>
+                                )}
                             </FormField>
                             {token === 'BRL' ? (
                                 <div className="space-y-4 border-t border-border pt-4">
@@ -399,7 +419,7 @@ export default function WithdrawPage() {
                             <Button
                                 type="submit"
                                 className="w-full"
-                                disabled={submitting || !amount}
+                                disabled={submitting || !parsedAmount}
                                 data-testid="withdraw-submit-button"
                             >
                                 {submitting ? (

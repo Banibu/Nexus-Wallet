@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { api, toastError } from '@/lib/api';
-import { fmtNumber } from '@/lib/format';
+import { fmtNumber, fmtRate } from '@/lib/format';
+import { getAmountInputError, normalizeApiAmount } from '@/lib/numberFormat';
 
 const TOKENS = ['BRL', 'BTC', 'ETH', 'USDT'];
 
@@ -27,17 +28,20 @@ export default function SwapPage() {
     const [quote, setQuote] = useState<any | null>(null);
     const [quoteLoading, setQuoteLoading] = useState(false);
     const [executing, setExecuting] = useState(false);
-    const debounceRef = useRef(null);
+    const debounceRef = useRef<any>(null);
+    const parsedAmount = normalizeApiAmount(amount, fromToken);
+    const amountError = getAmountInputError(amount, fromToken);
 
     const fetchQuote = useCallback(async () => {
-        if (!amount || Number(amount) <= 0 || fromToken === toToken) {
+        const parsedAmount = normalizeApiAmount(amount, fromToken);
+        if (!parsedAmount || fromToken === toToken) {
             setQuote(null);
             return;
         }
         setQuoteLoading(true);
         try {
             const { data } = await api.get('/swaps/quote', {
-                params: { fromToken, toToken, amount },
+                params: { fromToken, toToken, amount: parsedAmount },
             });
             setQuote(data);
         } catch (e) {
@@ -66,15 +70,18 @@ export default function SwapPage() {
     };
 
     const execute = async () => {
-        if (!quote) return;
+        const parsedAmount = normalizeApiAmount(amount, fromToken);
+        if (!quote || !parsedAmount) return;
         setExecuting(true);
         try {
             const { data } = await api.post('/swaps/execute', {
                 fromToken,
                 toToken,
-                amount,
+                amount: parsedAmount,
             });
-            toast.success(`Conversão concluída • ${data.amountOut} ${toToken}`);
+            toast.success(
+                `Conversão concluída • ${fmtNumber(data.amountOut, { token: toToken })} ${toToken}`,
+            );
             setAmount('');
             setQuote(null);
         } catch (e) {
@@ -158,19 +165,29 @@ export default function SwapPage() {
                             <Label>Quantidade ({fromToken})</Label>
                             <Input
                                 inputMode="decimal"
-                                placeholder="0,00"
-                                value={amount}
-                                onChange={(e) =>
-                                    setAmount(e.target.value.replace(',', '.'))
+                                placeholder={
+                                    fromToken === 'BRL' ? '0,00' : '0.00'
                                 }
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
                                 data-testid="swap-amount-input"
-                                className="text-lg tabular-nums"
+                                className={`text-lg tabular-nums ${amountError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                             />
+                            {amountError && (
+                                <p className="text-xs text-destructive mt-1">
+                                    {amountError}
+                                </p>
+                            )}
                         </div>
                         <Button
                             className="w-full"
                             size="lg"
-                            disabled={!quote || executing || quoteLoading}
+                            disabled={
+                                !quote ||
+                                executing ||
+                                quoteLoading ||
+                                !parsedAmount
+                            }
                             onClick={execute}
                             data-testid="swap-execute-button"
                         >
@@ -229,7 +246,7 @@ export default function SwapPage() {
                                 />
                                 <Row
                                     label="Cotação"
-                                    value={`1 ${quote.fromToken} = ${fmtNumber(quote.rate, { maxDigits: 8 })} ${quote.toToken}`}
+                                    value={`1 ${quote.fromToken} = ${fmtRate(quote.rate, quote.toToken, 8)} ${quote.toToken}`}
                                     testid="swap-quote-rate"
                                 />
                                 <Separator />

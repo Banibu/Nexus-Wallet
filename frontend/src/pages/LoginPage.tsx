@@ -75,6 +75,10 @@ export default function LoginPage() {
     const onCodeSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         setError('');
+        if (code.length !== 6) {
+            setError('Informe o código de 6 dígitos.');
+            return;
+        }
         setLoading(true);
         try {
             await loginTotp(email, code, true);
@@ -264,7 +268,7 @@ export default function LoginPage() {
                             <Button
                                 type="submit"
                                 className="w-full mt-4"
-                                disabled={loading}
+                                disabled={loading || code.length !== 6}
                             >
                                 {loading ? (
                                     <>
